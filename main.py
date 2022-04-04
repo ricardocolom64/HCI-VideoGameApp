@@ -34,7 +34,7 @@ if add_selectbox == "Homepage":
         return string
 
 # The URL used for searching by game name
-# TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
+# TO DO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
     games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(game_to_search_for) + "&page=" + str(currPage)
     print("The URL of the API request:" + games_url)
 
