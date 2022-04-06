@@ -44,94 +44,115 @@ if add_selectbox == "Homepage":
     games_list = []
     currGameGenres = ""
 
+    # Creates a streamlit multiselect widget to select what types of info the user would like to include in the table
     selectTableInfo = st.multiselect(
         'What Info would you like to show on this list of games?',
         ['Genre', 'Rating', 'Release Date']
     )
 
+    # If 'Genre' is selected on the above multiselect...
+    # Creates a streamlit selectbox widget to select what genre the user would like to filter by
+    if('Genre' in selectTableInfo):
+        selectGenre = st.selectbox(
+            'What Genre would you like to search for?',
+            ('All', 'Action', 'Adventure', 'Arcade', 'Platformer', 'RPG', 'Racing', 'Sports')
+        )
+    # Otherwise, set the selectGenre variable to 'Null'
+    else:
+        selectGenre = 'Null'
+
+    # This chooses what info to include in our games_list array, which will be used to fill in the dataframe (table)
     for i in games_dict["results"]:
+
+        # This fills in our currGameGenres string (a list of genres) for the specified game, seperated by ', '
+        # (each game may have multiple genres)
         for j in i["genres"]:
             if (len(currGameGenres) == 0):
                 currGameGenres += j["name"]
             else:
                 currGameGenres += ", " + j["name"]
 
-                # if multiselect includes genre, release date, and ratings
-                if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-                    games_list.append([i["name"], currGameGenres, i["released"], i["rating"], i["ratings_count"], i["id"]])
+        # If a currGameGenres contains the genre selected by selectGenre,
+        # or selectGenre is set to 'All' or 'Null', then display the respective data.
+        if ('All' == selectGenre) | (selectGenre in currGameGenres) | ('Null' == selectGenre):
+            # If selectTableInfo multiselect includes Genre, Release Date, and Ratings
+            if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+                games_list.append([i["name"], currGameGenres, i["released"], i["rating"], i["ratings_count"], i["id"]])
 
-                # if multiselect includes genre, release date
-                elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-                    games_list.append([i["name"], currGameGenres, i["released"], i["id"]])
+            # If selectTableInfo multiselect includes Genre, Release Date
+            elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
+                games_list.append([i["name"], currGameGenres, i["released"], i["id"]])
 
-                # if multiselect includes genre, ratings
-                elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-                    games_list.append([i["name"], currGameGenres, i["rating"], i["ratings_count"], i["id"]])
+            # If selectTableInfomultiselect includes Genre, Ratings
+            elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
+                games_list.append([i["name"], currGameGenres, i["rating"], i["ratings_count"], i["id"]])
 
-                # if multiselect includes release date, ratings
-                elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-                    games_list.append([i["name"], i["released"], i["rating"], i["ratings_count"], i["id"]])
+            # If selectTableInfomultiselect includes Release Date, and Ratings
+            elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+                games_list.append([i["name"], i["released"], i["rating"], i["ratings_count"], i["id"]])
 
-                # if multiselect only includes genre
-                elif ('Genre' in selectTableInfo):
-                    games_list.append([i["name"], currGameGenres, i["id"]])
+            # If selectTableInfo multiselect only includes Genre
+            elif ('Genre' in selectTableInfo):
+                games_list.append([i["name"], currGameGenres, i["id"]])
 
-                # if multiselect only includes release date
-                elif ('Release Date' in selectTableInfo):
-                    games_list.append([i["name"], i["released"], i["id"]])
+            # If selectTableInfo multiselect only includes Release Date
+            elif ('Release Date' in selectTableInfo):
+                games_list.append([i["name"], i["released"], i["id"]])
 
-                # if multiselect only includes ratings
-                elif ('Rating' in selectTableInfo):
-                    games_list.append([i["name"], i["rating"], i["ratings_count"], i["id"]])
+            # If selectTableInfo multiselect only includes Ratings
+            elif ('Rating' in selectTableInfo):
+                games_list.append([i["name"], i["rating"], i["ratings_count"], i["id"]])
 
-                # if multiselect doesn't include any options
-                else:
-                    games_list.append([i["name"], i["id"]])
-                currGameGenres = ""
+            # If selectTableInfo multiselect doesn't include any options
+            else:
+                games_list.append([i["name"], i["id"]])
 
+        # empty out the currGameGenres string, to be filled out by the new game's genre data when the loop reiterates
+        currGameGenres = ""
 
+    # If the data filled into games_list includes Genre, Release Date, and Ratings
     if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-
+    # If the data filled into games_list includes Genre and Release Date
     elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Genre', 'Released', 'Unique ID'))
 
-
+    # If the data filled into games_list includes Genre and Ratings
     elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-
+    # If the data filled into games_list includes Release Date and Ratings
     elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-
+    # If the data filled into games_list includes Genre
     elif ('Genre' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Genre', 'Unique ID'))
 
-
+    # If the data filled into games_list includes Release Date
     elif ('Release Date' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Released', 'Unique ID'))
 
-
+    # If the data filled into games_list includes Ratings
     elif ('Rating' in selectTableInfo):
         games_df = pd.DataFrame(
             games_list,
             columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-
+    # If the data filled into games_list does not include Genre, Release Date, or Ratings
     else:
         games_df = pd.DataFrame(
             games_list,
@@ -164,16 +185,40 @@ elif add_selectbox == "Feedback":
     username = st.text_input('Username')
     feedback = st.text_area('Feedback')
 
+    usernameSuccess = False
+
+    # If the Enter button is pressed...
     if st.button('Enter'):
-        st.info("Feedback Saved")
+        # If username is empty, show an error box
+        if not username:
+            st.error("Username is empty")
+            usernameSuccess = False
+        # Else, If username has a number & letter, show a success box
+        elif any(i.isdigit() for i in username) & any(i.isalpha() for i in username):
+            st.success("Username Accepted")
+            usernameSuccess = True
+        # Else (username is missing a number and/or letter), show an error box
+        else:
+            st.error("Username must contain both letters & numbers.")
+            usernameSuccess = False
 
-    if username.isdigit():
-        st.error("Username must contain both letters & numbers.")
+        # If the username is accepted...
+        if (usernameSuccess):
+            # If feedback is not empty, show an info box
+            if (len(feedback.strip())):
+                st.info("Feedback Saved")
+            # Else (feedback is empty), show an error box
+            else:
+                st.error("The feedback is empty")
 
-    elif username:
-        st.success("Username Accepted")
-
-    # Add the feedback textbox here
+    # If an update is made without pressing the Enter button...
+    else:
+        # If username has a number & letter, show a success box
+        if any(i.isdigit() for i in username) & any(i.isalpha() for i in username):
+            st.success("Username Accepted")
+        # Else (username is missing a number and/or letter), show an error box
+        elif username:
+            st.error("Username must contain both letters & numbers.")
 
 
 # ------------- CONTACT INFO PAGE -------------
