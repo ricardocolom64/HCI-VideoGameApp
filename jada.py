@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 import requests
 import streamlit as st
-
+from streamlit_folium import folium_static
+import folium
 
 # This app is using Best Buy's API and RAWG Video Games Database API
 
@@ -128,55 +129,59 @@ if add_selectbox == "Homepage":
         # empty out the currGameGenres string, to be filled out by the new game's genre data when the loop reiterates
         currGameGenres = ""
 
-    # If the data filled into games_list includes Genre, Release Date, and Ratings
-    if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
+    if games_list:
+        # If the data filled into games_list includes Genre, Release Date, and Ratings
+        if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-    # If the data filled into games_list includes Genre and Release Date
-    elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Released', 'Unique ID'))
+        # If the data filled into games_list includes Genre and Release Date
+        elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Genre', 'Released', 'Unique ID'))
 
-    # If the data filled into games_list includes Genre and Ratings
-    elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
+        # If the data filled into games_list includes Genre and Ratings
+        elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-    # If the data filled into games_list includes Release Date and Ratings
-    elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
+        # If the data filled into games_list includes Release Date and Ratings
+        elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-    # If the data filled into games_list includes Genre
-    elif ('Genre' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Unique ID'))
+        # If the data filled into games_list includes Genre
+        elif ('Genre' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Genre', 'Unique ID'))
 
-    # If the data filled into games_list includes Release Date
-    elif ('Release Date' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Released', 'Unique ID'))
+        # If the data filled into games_list includes Release Date
+        elif ('Release Date' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Released', 'Unique ID'))
 
-    # If the data filled into games_list includes Ratings
-    elif ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
+        # If the data filled into games_list includes Ratings
+        elif ('Rating' in selectTableInfo):
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-    # If the data filled into games_list does not include Genre, Release Date, or Ratings
+        # If the data filled into games_list does not include Genre, Release Date, or Ratings
+        else:
+            games_df = pd.DataFrame(
+                games_list,
+                columns=('Game', 'Unique ID'))
+
+        st.dataframe(games_df)
+
     else:
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Unique ID'))
-
-    st.dataframe(games_df)
+        st.error("No games found")
 
 
 # ------------- RATINGS PAGE -------------
@@ -192,6 +197,17 @@ elif add_selectbox == "Locations":
     st.write("To be constructed")
 
     # Add the map here
+    def map_creator(latitude, longitude):
+
+        # center on the station
+        m = folium.Map(location=[latitude, longitude], zoom_start=10)
+
+        # add marker for the station
+        folium.Marker([latitude, longitude], popup="Station", tooltip="Station").add_to(m)
+
+        # call to render Folium map in Streamlit
+        folium_static(m)
+
 
 
 # ------------- FEEDBACK PAGE -------------
