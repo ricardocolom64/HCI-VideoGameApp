@@ -1,6 +1,6 @@
 # HCI-VideoGameApp
 
-##TO DO
+## TO DO
 * fix the map code
 * clean up the code in general (lots of messy elifs and redundant comments, I (Martin) will see if there's any way to clean that up)
 * maybe have all fields blank as default and get the data frame to hide blank columns? there's gotta be a way to do that
