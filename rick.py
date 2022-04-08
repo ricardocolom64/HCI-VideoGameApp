@@ -183,6 +183,11 @@ if add_selectbox == "Homepage":
     else:
         st.error("No games found")
 
+    select_game_options = []
+    for i in range(len(games_df.index)):
+        select_game_options.append(str(i) + " - " + str(games_list[i][0]))
+
+    selected_game = st.selectbox('Select game:', select_game_options)
 
 # ------------- RATINGS PAGE -------------
 elif add_selectbox == "Ratings":

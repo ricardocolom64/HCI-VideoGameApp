@@ -3,8 +3,11 @@ import pandas as pd
 import numpy as np
 import requests
 import streamlit as st
-from streamlit_folium import folium_static
-import folium
+from streamlit_bokeh_events import streamlit_bokeh_events
+from bokeh.models.widgets import Button
+from bokeh.models import CustomJS
+import pydeck as pdk
+
 
 # This app is using Best Buy's API and RAWG Video Games Database API
 
@@ -129,59 +132,55 @@ if add_selectbox == "Homepage":
         # empty out the currGameGenres string, to be filled out by the new game's genre data when the loop reiterates
         currGameGenres = ""
 
-    if games_list:
-        # If the data filled into games_list includes Genre, Release Date, and Ratings
-        if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
+    # If the data filled into games_list includes Genre, Release Date, and Ratings
+    if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-        # If the data filled into games_list includes Genre and Release Date
-        elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Released', 'Unique ID'))
+    # If the data filled into games_list includes Genre and Release Date
+    elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Genre', 'Released', 'Unique ID'))
 
-        # If the data filled into games_list includes Genre and Ratings
-        elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
+    # If the data filled into games_list includes Genre and Ratings
+    elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-        # If the data filled into games_list includes Release Date and Ratings
-        elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
+    # If the data filled into games_list includes Release Date and Ratings
+    elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-        # If the data filled into games_list includes Genre
-        elif ('Genre' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Unique ID'))
+    # If the data filled into games_list includes Genre
+    elif ('Genre' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Genre', 'Unique ID'))
 
-        # If the data filled into games_list includes Release Date
-        elif ('Release Date' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Released', 'Unique ID'))
+    # If the data filled into games_list includes Release Date
+    elif ('Release Date' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Released', 'Unique ID'))
 
-        # If the data filled into games_list includes Ratings
-        elif ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
+    # If the data filled into games_list includes Ratings
+    elif ('Rating' in selectTableInfo):
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-        # If the data filled into games_list does not include Genre, Release Date, or Ratings
-        else:
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Unique ID'))
-
-        st.dataframe(games_df)
-
+    # If the data filled into games_list does not include Genre, Release Date, or Ratings
     else:
-        st.error("No games found")
+        games_df = pd.DataFrame(
+            games_list,
+            columns=('Game', 'Unique ID'))
+
+    st.dataframe(games_df)
 
 
 # ------------- RATINGS PAGE -------------
@@ -197,17 +196,76 @@ elif add_selectbox == "Locations":
     st.write("To be constructed")
 
     # Add the map here
-    def map_creator(latitude, longitude):
+    '''loc_button = Button(label = "Get Location")
+    loc_button.js_on_event("button_click", CustomJS(code = """
+        navigator.geolocation.getCurrentPosition(
+            (loc) => {
+                document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
+                }
+            }
+        )
+        """))
+    result = streamlit_bokeh_events(
+        loc_button,
+        events = "GET_LOCATION",
+        key = "get_location",
+        refresh_on_update = False,
+        override_height = 75,
+        debounce_time = 0
+    )'''
 
-        # center on the station
-        m = folium.Map(location=[latitude, longitude], zoom_start=10)
+    bestBuyLocationsList = []
 
-        # add marker for the station
-        folium.Marker([latitude, longitude], popup="Station", tooltip="Station").add_to(m)
+    zipCode = ""
 
-        # call to render Folium map in Streamlit
-        folium_static(m)
+    while(True):
+        zipCode = st.text_input("Please input your ZIP Code to display Best Buys near you: ")
+        if zipCode.isdigit:
+            break
+    
+    if zipCode != "":
+        bestBuyLocationURL = "https://api.bestbuy.com/v1/stores((area(" + zipCode + ",10)))?apiKey=" + keys.BESTBUY_API_KEY + "&show=lng,lat,name&format=json"
+        bestBuyLocations = requests.get(bestBuyLocationURL).json()
+        bestBuyLocations
+        for i in bestBuyLocations["stores"]:
+            bestBuyLocationsList.append([i["lat"], i["lng"]])
+        bestBuys = pd.DataFrame(np.array(bestBuyLocationsList), columns = ['lat', 'lon'])
+        bestBuys
+        midpoint = (np.average(bestBuys['lat']), np.average(bestBuys['lon']))
+        # st.pydeck_chart(pdk.Deck(
+        #     map_style='mapbox://styles/mapbox/light-v9',
+        #     initial_view_state=pdk.ViewState(
+        #         latitude=midpoint[0],
+        #         longitude=midpoint[1],
+        #         zoom=11,
+        #         pitch=0,
+        #     ),
+        #     layers=[
+        #         # pdk.Layer(
+        #         #     'HexagonLayer',
+        #         #     data=bestBuys,
+        #         #     get_position='[lon, lat]',
+        #         #     radius=200,
+        #         #     elevation_scale=4,
+        #         #     elevation_range=[0, 1000],
+        #         #     pickable=True,
+        #         #     extruded=True,
+        #         # ),
+        #         pdk.Layer(
+        #             'ScatterplotLayer',
+        #             data=bestBuys,
+        #             get_position='[lat, lon]',
+        #             get_color='[255, 0, 156, 1]',
+        #             get_radius=100,
+        #         ),
+        #     ],
+        # ))
+        st.map(bestBuys)
 
+
+    #location = pd.DataFrame(result, columns = ("lat", "lon"))
+    
+    
 
 
 # ------------- FEEDBACK PAGE -------------
