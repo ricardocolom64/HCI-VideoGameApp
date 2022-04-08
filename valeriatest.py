@@ -76,26 +76,45 @@ elif add_selectbox == "Locations":
 
 
 elif add_selectbox == "Feedback":
-  title_col.title("Feedback :memo:")
+    title_col.title("Feedback :memo:")
 
-  username = st.text_input('Username')
-  feedback = st.text_area('Feedback')
+    username = st.text_input('Username')
+    feedback = st.text_area('Feedback')
 
-  if st.button('Enter'):
-   if (len(feedback.strip())):
-       st.info ("Feedback Saved")
-   elif feedback:
-        st.error("The feedback is empty")
+    usernameSuccess = False
 
+    # If the Enter button is pressed...
+    if st.button('Enter'):
+        # If username is empty, show an error box
+        if not username:
+            st.error("Username is empty")
+            usernameSuccess = False
+        # Else, If username has a number & letter, show a success box
+        elif any(i.isdigit() for i in username) & any(i.isalpha() for i in username):
+            st.success("Username Accepted")
+            usernameSuccess = True
+        # Else (username is missing a number and/or letter), show an error box
+        else:
+            st.error("Username must contain both letters & numbers.")
+            usernameSuccess = False
 
-  if username.isdigit():
-      st.error("Username must contain both letters & numbers.")
+        # If the username is accepted...
+        if (usernameSuccess):
+            # If feedback is not empty, show an info box
+            if (len(feedback.strip())):
+                st.info("Feedback Saved")
+            # Else (feedback is empty), show an error box
+            else:
+                st.error("The feedback is empty")
 
-  elif username.isalpha():
-      st.error("Username must contain both letters & numbers.")
-
-  elif username:
-      st.success("Username Accepted")
+    # If an update is made without pressing the Enter button...
+    else:
+        # If username has a number & letter, show a success box
+        if any(i.isdigit() for i in username) & any(i.isalpha() for i in username):
+            st.success("Username Accepted")
+        # Else (username is missing a number and/or letter), show an error box
+        elif username:
+            st.error("Username must contain both letters & numbers.")
 
 
 
