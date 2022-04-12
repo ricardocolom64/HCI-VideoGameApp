@@ -3,9 +3,9 @@ import pandas as pd
 import numpy as np
 import requests
 import streamlit as st
-from streamlit_bokeh_events import streamlit_bokeh_events
-from bokeh.models.widgets import Button
-from bokeh.models import CustomJS
+#from streamlit_bokeh_events import streamlit_bokeh_events
+#from bokeh.models.widgets import Button
+#from bokeh.models import CustomJS
 import pydeck as pdk
 
 
@@ -88,97 +88,156 @@ if add_selectbox == "Homepage":
         # If a currGameGenres contains the genre selected by selectGenre,
         # or selectGenre is set to 'All' or 'Null', then display the respective data.
         if ('All' == selectGenre) | (selectGenre in currGameGenres) | ('Null' == selectGenre):
-            # If selectTableInfo multiselect includes Genre, Release Date, and Ratings
-            if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
-                if((i["rating"] >= startRating) & (i["rating"] <= endRating)):
-                    games_list.append([i["name"], currGameGenres, i["released"], i["rating"], i["ratings_count"], i["id"]])
 
-            # If selectTableInfo multiselect includes Genre, Release Date
-            elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-                games_list.append([i["name"], currGameGenres, i["released"], i["id"]])
+            #instead of the elif branch, i used a switch statement here to make things more readable and efficient; it functions more or less identically -Martin
+            itemToAppend = [i["name"]]
 
-            # If selectTableInfomultiselect includes Genre, Ratings
-            elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
+            for k in selectTableInfo:
+                match k:
+                    case 'Genre':
+                        itemToAppend.insert(1, currGameGenres)
+                    case 'Release Date':
+                        itemToAppend.append(i["released"])
+                    case 'Rating':
+                        if i["released"] in itemToAppend:
+                            itemToAppend.insert(itemToAppend.index(i["released"]) + 1, i["rating"])
+                            itemToAppend.insert(itemToAppend.index(i["rating"]) + 1, i["ratings_count"])
+                        else:
+                            itemToAppend.append(i["rating"])
+                            itemToAppend.append(i["ratings_count"])
+
+            itemToAppend.append(i["id"])
+
+            #print(itemToAppend) this is debugging code
+
+            #there's a better way of doing this but it didn't work so here's the bad solution
+            if('Rating' in selectTableInfo):
                 if ((i["rating"] >= startRating) & (i["rating"] <= endRating)):
-                    games_list.append([i["name"], currGameGenres, i["rating"], i["ratings_count"], i["id"]])
-
-
-            # If selectTableInfomultiselect includes Release Date, and Ratings
-            elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
-                if ((i["rating"] >= startRating) & (i["rating"] <= endRating)):
-                    games_list.append([i["name"], i["released"], i["rating"], i["ratings_count"], i["id"]])
-
-            # If selectTableInfo multiselect only includes Genre
-            elif ('Genre' in selectTableInfo):
-                games_list.append([i["name"], currGameGenres, i["id"]])
-
-            # If selectTableInfo multiselect only includes Release Date
-            elif ('Release Date' in selectTableInfo):
-                games_list.append([i["name"], i["released"], i["id"]])
-
-            # If selectTableInfo multiselect only includes Ratings
-            elif ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
-                if ((i["rating"] >= startRating) & (i["rating"] <= endRating)):
-                    games_list.append([i["name"], i["rating"], i["ratings_count"], i["id"]])
-
-            # If selectTableInfo multiselect doesn't include any options
+                    games_list.append(itemToAppend)
             else:
-                games_list.append([i["name"], i["id"]])
+                games_list.append(itemToAppend)
+
+
+            # # If selectTableInfo multiselect includes Genre, Release Date, and Ratings
+            # if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+            #     # Adds game to results list if the rating is in the range provided by the user
+            #     if((i["rating"] >= startRating) & (i["rating"] <= endRating)):
+            #         games_list.append([i["name"], currGameGenres, i["released"], i["rating"], i["ratings_count"], i["id"]])
+
+            # # If selectTableInfo multiselect includes Genre, Release Date
+            # elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
+            #     games_list.append([i["name"], currGameGenres, i["released"], i["id"]])
+
+            # # If selectTableInfomultiselect includes Genre, Ratings
+            # elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
+            #     # Adds game to results list if the rating is in the range provided by the user
+            #     if ((i["rating"] >= startRating) & (i["rating"] <= endRating)):
+            #         games_list.append([i["name"], currGameGenres, i["rating"], i["ratings_count"], i["id"]])
+
+
+            # # If selectTableInfomultiselect includes Release Date, and Ratings
+            # elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+            #     # Adds game to results list if the rating is in the range provided by the user
+            #     if ((i["rating"] >= startRating) & (i["rating"] <= endRating)):
+            #         games_list.append([i["name"], i["released"], i["rating"], i["ratings_count"], i["id"]])
+
+            # # If selectTableInfo multiselect only includes Genre
+            # elif ('Genre' in selectTableInfo):
+            #     games_list.append([i["name"], currGameGenres, i["id"]])
+
+            # # If selectTableInfo multiselect only includes Release Date
+            # elif ('Release Date' in selectTableInfo):
+            #     games_list.append([i["name"], i["released"], i["id"]])
+
+            # # If selectTableInfo multiselect only includes Ratings
+            # elif ('Rating' in selectTableInfo):
+            #     # Adds game to results list if the rating is in the range provided by the user
+            #     if ((i["rating"] >= startRating) & (i["rating"] <= endRating)):
+            #         games_list.append([i["name"], i["rating"], i["ratings_count"], i["id"]])
+
+            # # If selectTableInfo multiselect doesn't include any options
+            # else:
+            #     games_list.append([i["name"], i["id"]])
 
         # empty out the currGameGenres string, to be filled out by the new game's genre data when the loop reiterates
         currGameGenres = ""
 
-    # If the data filled into games_list includes Genre, Release Date, and Ratings
-    if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
 
-    # If the data filled into games_list includes Genre and Release Date
-    elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Released', 'Unique ID'))
+    #the elif branches were bothering me so I condensed the whole thing into this method that is absolutely gross and shouldn't work as well as it does but it does and that's what matters -Martin
 
-    # If the data filled into games_list includes Genre and Ratings
-    elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
+    #so first we make a list of columns including game and unique id since those are always gonna be in the results
+    frameColumns = ['Game', 'Unique ID']
 
-    # If the data filled into games_list includes Release Date and Ratings
-    elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
+    #we add to this list everything that the user selected earlier in the multiselect
+    for i in selectTableInfo:
+        frameColumns.append(i)
 
-    # If the data filled into games_list includes Genre
-    elif ('Genre' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Genre', 'Unique ID'))
+    #we use the sort method because as it turns out the table columns order we want is almost in alphabetical order
+    frameColumns.sort()
+    print(frameColumns)
 
-    # If the data filled into games_list includes Release Date
-    elif ('Release Date' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Released', 'Unique ID'))
+    #we add the number of ratings column
+    if 'Rating' in frameColumns:
+        frameColumns.insert(frameColumns.index('Rating') + 1, 'Number of Ratings')
+    #and also put released behind rating 
+    if ('Release Date' in frameColumns) & ('Rating' in frameColumns):
+        frameColumns.insert(frameColumns.index('Rating'), frameColumns.pop(frameColumns.index('Release Date')))
 
-    # If the data filled into games_list includes Ratings
-    elif ('Rating' in selectTableInfo):
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
+    print(frameColumns)
+    #and then we create the dataframe to print, converting 45 lines of code to 21
+    games_df = pd.DataFrame(
+        games_list,
+        columns = frameColumns
+    )
+        
 
-    # If the data filled into games_list does not include Genre, Release Date, or Ratings
-    else:
-        games_df = pd.DataFrame(
-            games_list,
-            columns=('Game', 'Unique ID'))
+
+    # if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
+
+    # # If the data filled into games_list includes Genre and Release Date
+    # elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Genre', 'Released', 'Unique ID'))
+
+    # # If the data filled into games_list includes Genre and Ratings
+    # elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
+
+    # # If the data filled into games_list includes Release Date and Ratings
+    # elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
+
+    # # If the data filled into games_list includes Genre
+    # elif ('Genre' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Genre', 'Unique ID'))
+
+    # # If the data filled into games_list includes Release Date
+    # elif ('Release Date' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Released', 'Unique ID'))
+
+    # # If the data filled into games_list includes Ratings
+    # elif ('Rating' in selectTableInfo):
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
+
+    # # If the data filled into games_list does not include Genre, Release Date, or Ratings
+    # else:
+    #     games_df = pd.DataFrame(
+    #         games_list,
+    #         columns=('Game', 'Unique ID'))
 
     st.dataframe(games_df)
 
@@ -196,23 +255,23 @@ elif add_selectbox == "Locations":
     st.write("To be constructed")
 
     # Add the map here
-    '''loc_button = Button(label = "Get Location")
-    loc_button.js_on_event("button_click", CustomJS(code = """
-        navigator.geolocation.getCurrentPosition(
-            (loc) => {
-                document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
-                }
-            }
-        )
-        """))
-    result = streamlit_bokeh_events(
-        loc_button,
-        events = "GET_LOCATION",
-        key = "get_location",
-        refresh_on_update = False,
-        override_height = 75,
-        debounce_time = 0
-    )'''
+    # loc_button = Button(label = "Get Location")
+    # loc_button.js_on_event("button_click", CustomJS(code = """
+    #     navigator.geolocation.getCurrentPosition(
+    #         (loc) => {
+    #             document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
+    #             }
+    #         }
+    #     )
+    #     """))
+    # result = streamlit_bokeh_events(
+    #     loc_button,
+    #     events = "GET_LOCATION",
+    #     key = "get_location",
+    #     refresh_on_update = False,
+    #     override_height = 75,
+    #     debounce_time = 0
+    # )
 
     bestBuyLocationsList = []
 
@@ -224,15 +283,16 @@ elif add_selectbox == "Locations":
             break
     
     if zipCode != "":
-        bestBuyLocationURL = "https://api.bestbuy.com/v1/stores((area(" + zipCode + ",10)))?apiKey=" + keys.BESTBUY_API_KEY + "&show=lng,lat,name&format=json"
+        bestBuyLocationURL = "https://api.bestbuy.com/v1/stores((area(" + zipCode + ",20)))?apiKey=" + keys.BESTBUY_API_KEY + "&show=lng,lat,name&format=json"
         bestBuyLocations = requests.get(bestBuyLocationURL).json()
-        bestBuyLocations
+        #bestBuyLocations
         for i in bestBuyLocations["stores"]:
             bestBuyLocationsList.append([i["lat"], i["lng"]])
         bestBuys = pd.DataFrame(np.array(bestBuyLocationsList), columns = ['lat', 'lon'])
-        bestBuys
+        #bestBuys this was for debugging
         midpoint = (np.average(bestBuys['lat']), np.average(bestBuys['lon']))
-        # st.pydeck_chart(pdk.Deck(
+        
+        # st.pydeck_chart(pdk.Deck( disgusting and horrid
         #     map_style='mapbox://styles/mapbox/light-v9',
         #     initial_view_state=pdk.ViewState(
         #         latitude=midpoint[0],
@@ -260,6 +320,7 @@ elif add_selectbox == "Locations":
         #         ),
         #     ],
         # ))
+
         st.map(bestBuys)
 
 
