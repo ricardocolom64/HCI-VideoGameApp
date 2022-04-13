@@ -207,18 +207,27 @@ elif add_selectbox == "Ratings":
     # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
     games_dict = requests.get(games_url).json()
 
-    ratings_dict = []
+    ratings_dict = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
+
 
     for i in games_dict["results"][0]["ratings"]:
         rating_score = i["id"]
         rating_count = i["count"]
-        ratings_dict.insert(rating_score, rating_count)
+        ratings_dict[rating_score].append(rating_count)
 
-    #TODO: remove line below after testing
-    #st.write(ratings_dict)
+    ratings_list = []
+    for j in range(6):
+        if (ratings_dict[j].__len__() == 0):
+            ratings_dict[j].append(0)
+        ratings_list.append(ratings_dict[j])
+
+    #TODO: remove 3 lines below after testing
+    # st.write(games_dict["results"][0]["ratings"])
+    # st.write(ratings_dict)
+    # st.write(ratings_list)
 
     st.write("Ratings Distribution for {0}".format(game_to_search_for))
-    chart_data = pd.DataFrame(ratings_dict)
+    chart_data = pd.DataFrame(ratings_list)
     st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
 
 
