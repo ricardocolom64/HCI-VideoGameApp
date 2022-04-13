@@ -188,7 +188,39 @@ if add_selectbox == "Homepage":
 elif add_selectbox == "Ratings":
     # Add the chart with the ratings here
     title_col.title("Ratings :bar_chart:")
-    st.write("To be constructed")
+    st.write("In Progress")
+
+    game_to_search_for = "Portal"
+
+    # Used to replace spaces in a search with +'s, so that the URL actually works
+    def fixForURL(string):
+        string = string.replace(" ", "+")
+        return string
+
+
+    # The URL used for searching by game name
+    # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
+    games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search_exact=" + fixForURL(
+        game_to_search_for)
+    print("The URL of the API request:" + games_url)
+
+    # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+    games_dict = requests.get(games_url).json()
+
+    ratings_dict = []
+
+    for i in games_dict["results"][0]["ratings"]:
+        rating_score = i["id"]
+        rating_count = i["count"]
+        ratings_dict.insert(rating_score, rating_count)
+
+    #TODO: remove line below after testing
+    #st.write(ratings_dict)
+
+    st.write("Ratings Distribution for {0}".format(game_to_search_for))
+    chart_data = pd.DataFrame(ratings_dict)
+    st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+
 
 
 # ------------- LOCATIONS PAGE -------------
