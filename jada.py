@@ -230,6 +230,7 @@ elif add_selectbox == "Ratings":
     chart_data = pd.DataFrame(ratings_list)
     st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
 
+    #TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
 
 
 # ------------- LOCATIONS PAGE -------------
