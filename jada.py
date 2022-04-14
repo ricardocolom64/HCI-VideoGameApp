@@ -183,52 +183,75 @@ if add_selectbox == "Homepage":
     else:
         st.error("No games found")
 
+    select_game_options = []
+    for i in range(len(games_df.index)):
+        select_game_options.append(str(i) + " - " + str(games_list[i][0]))
+
+    selected_game = st.selectbox('Select game:', select_game_options)
+
 
 # ------------- RATINGS PAGE -------------
 elif add_selectbox == "Ratings":
     # Add the chart with the ratings here
     title_col.title("Ratings :bar_chart:")
-    st.write("In Progress")
 
-    game_to_search_for = "Portal"
+    #game_to_search_for = "Portal"
 
-    # Used to replace spaces in a search with +'s, so that the URL actually works
-    def fixForURL(string):
-        string = string.replace(" ", "+")
-        return string
+    # Search name for game
+    game_to_search_for = st.text_input('Enter the name of the game you would like to search for:')
+    currPage = 1
 
-
-    # The URL used for searching by game name
-    # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
-    games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search_exact=" + fixForURL(
-        game_to_search_for)
-    print("The URL of the API request:" + games_url)
-
-    # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
-    games_dict = requests.get(games_url).json()
-
-    ratings_dict = {0:[], 1:[], 2:[], 3:[], 4:[], 5:[]}
+    if game_to_search_for:
+        # Used to replace spaces in a search with +'s, so that the URL actually works
+        def fixForURL(string):
+            string = string.replace(" ", "+")
+            return string
 
 
-    for i in games_dict["results"][0]["ratings"]:
-        rating_score = i["id"]
-        rating_count = i["count"]
-        ratings_dict[rating_score].append(rating_count)
+        # The URL used for searching by game name
+        # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
+        games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+            game_to_search_for)
+        print("The URL of the API request:" + games_url)
 
-    ratings_list = []
-    for j in range(6):
-        if (ratings_dict[j].__len__() == 0):
-            ratings_dict[j].append(0)
-        ratings_list.append(ratings_dict[j])
+        # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+        games_dict = requests.get(games_url).json()
+        game_options = games_dict["results"]
 
-    #TODO: remove 3 lines below after testing
-    # st.write(games_dict["results"][0]["ratings"])
-    # st.write(ratings_dict)
-    # st.write(ratings_list)
+        select_game_options = [""]
+        for i in range(len(game_options)):
+            select_game_options.append(str(i) + " - " + str(game_options[i]["name"]))
 
-    st.write("Ratings Distribution for {0}".format(game_to_search_for))
-    chart_data = pd.DataFrame(ratings_list)
-    st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+        selected_game = st.selectbox('Select game:', select_game_options)
+
+        if selected_game:
+            game_to_search_for = selected_game
+            games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+                game_to_search_for)
+            print("The URL of the API request:" + games_url)
+
+            # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+            games_dict = requests.get(games_url).json()
+
+            ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+
+            for i in games_dict["results"][0]["ratings"]:
+                rating_score = i["id"]
+                rating_count = i["count"]
+                ratings_dict[rating_score].append(rating_count)
+
+            ratings_list = []
+            for j in range(6):
+                if (ratings_dict[j].__len__() == 0):
+                    ratings_dict[j].append(0)
+                ratings_list.append(ratings_dict[j])
+
+            st.write("Ratings Distribution for {0}".format(game_to_search_for))
+            chart_data = pd.DataFrame(ratings_list)
+            st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+
+
+
 
     #TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
 
