@@ -4,10 +4,6 @@ import pandas as pd
 import numpy as np
 import requests
 import streamlit as st
-from streamlit_bokeh_events import streamlit_bokeh_events
-from bokeh.models.widgets import Button
-from bokeh.models import CustomJS
-import pydeck as pdk
 
 # This app is using Best Buy's API and RAWG Video Games Database API
 
@@ -65,7 +61,7 @@ if add_selectbox == "Homepage":
 
     # If 'Genre' is selected on the above multiselect...
     # Creates a streamlit selectbox widget to select what genre the user would like to filter by
-    if ('Genre' in selectTableInfo):
+    if('Genre' in selectTableInfo):
         selectGenre = st.selectbox(
             'What Genre would you like to search for?',
             ('All', 'Action', 'Adventure', 'Arcade', 'Board Games', 'Card', 'Casual', 'Educational', 'Family', 'Fighting',
@@ -84,11 +80,14 @@ if add_selectbox == "Homepage":
             return "&genres=" + selectGenre.lower()
 
     # Creates a double-sided slider that lets the user provide a range of ratings to filter the results
-    if ('Rating' in selectTableInfo):
+    if('Rating' in selectTableInfo):
         startRating, endRating = st.slider('Enter the range of Metacritic ratings',
-                                           value=(0, 100),
-                                           step=1,
-                                           on_change=fixPage, args=("Reset",))
+                                        min_value=1,
+                                        value=(1, 100),
+                                        step=1,
+                                        on_change=fixPage, args=("Reset",))
+
+        st.info("Filtering by rating removes thousands of games that have no Metacritic rating")
 
     # add a query parameter for ratings to the search, if requested by the user
     def doRatingsSearch():
@@ -98,7 +97,6 @@ if add_selectbox == "Homepage":
             return ""
 
     # The URL used for searching by game name
-    # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
     games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
         game_to_search_for) + "&page=" + str(st.session_state.currPage) + doGenreSearch() + doRatingsSearch()
     print("The URL of the API request:" + games_url)
@@ -120,111 +118,54 @@ if add_selectbox == "Homepage":
         # If a currGameGenres contains the genre selected by selectGenre,
         # or selectGenre is set to 'All' or 'Null', then display the respective data.
         if ('All' == selectGenre) | (selectGenre in currGameGenres) | ('Null' == selectGenre):
-            # If selectTableInfo multiselect includes Genre, Release Date, and Ratings
-            if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
+            #instead of the elif branch, i used a switch statement here to make things more readable and efficient; it functions more or less identically -Martin
+            itemToAppend = [i["name"]]
+            columnItems = ['Game']
+
+            for k in selectTableInfo:
+                match k:
+                    case 'Genre':
+                        itemToAppend.insert(1, currGameGenres)
+                        columnItems.insert(1, 'Genre')
+                    case 'Release Date':
+                        if i["rating"] in itemToAppend:
+                            itemToAppend.insert(itemToAppend.index(i["metacritic"]), i["released"])
+                            columnItems.insert(columnItems.index("Rating"), 'Released')
+                        else:
+                            itemToAppend.append(i["released"])
+                            columnItems.append('Released')
+                    case 'Rating':
+                        if i["released"] in itemToAppend:
+                            itemToAppend.insert(itemToAppend.index(i["released"]) + 1, i["metacritic"])
+                            itemToAppend.insert(itemToAppend.index(i["metacritic"]) + 1, i["ratings_count"])
+                            columnItems.insert(columnItems.index("Released") + 1, 'Rating')
+                            columnItems.insert(columnItems.index("Rating") + 1, 'Number of Ratings')
+                        else:
+                            itemToAppend.append(i["metacritic"])
+                            itemToAppend.append(i["ratings_count"])
+                            columnItems.append('Rating')
+                            columnItems.append('Number of Ratings')
+
+            itemToAppend.append(i["id"])
+            columnItems.append('Unique ID')
+
+            if('Rating' in selectTableInfo):
                 if (i["metacritic"] is None):
-                    games_list.append(
-                        [i["name"], currGameGenres, i["released"], i["metacritic"], i["ratings_count"], i["id"]])
+                    games_list.append(itemToAppend)
                 elif ((i["metacritic"] >= startRating) & (i["metacritic"] <= endRating)):
-                    games_list.append(
-                        [i["name"], currGameGenres, i["released"], i["metacritic"], i["ratings_count"], i["id"]])
-
-            # If selectTableInfo multiselect includes Genre, Release Date
-            elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-                games_list.append([i["name"], currGameGenres, i["released"], i["id"]])
-
-            # If selectTableInfo multiselect includes Genre, Ratings
-            elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
-                if (i["metacritic"] is None):
-                    games_list.append([i["name"], currGameGenres, i["metacritic"], i["ratings_count"], i["id"]])
-                elif ((i["metacritic"] >= startRating) & (i["metacritic"] <= endRating)):
-                    games_list.append([i["name"], currGameGenres, i["metacritic"], i["ratings_count"], i["id"]])
-
-
-            # If selectTableInfo multiselect includes Release Date, and Ratings
-            elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
-                if (i["metacritic"] is None):
-                    games_list.append([i["name"], i["released"], i["metacritic"], i["ratings_count"], i["id"]])
-                elif ((i["metacritic"] >= startRating) & (i["metacritic"] <= endRating)):
-                    games_list.append([i["name"], i["released"], i["metacritic"], i["ratings_count"], i["id"]])
-
-            # If selectTableInfo multiselect only includes Genre
-            elif ('Genre' in selectTableInfo):
-                games_list.append([i["name"], currGameGenres, i["id"]])
-
-            # If selectTableInfo multiselect only includes Release Date
-            elif ('Release Date' in selectTableInfo):
-                games_list.append([i["name"], i["released"], i["id"]])
-
-            # If selectTableInfo multiselect only includes Ratings
-            elif ('Rating' in selectTableInfo):
-                # Adds game to results list if the rating is in the range provided by the user
-                if (i["metacritic"] is None):
-                    games_list.append([i["name"], i["metacritic"], i["ratings_count"], i["id"]])
-                elif ((i["metacritic"] >= startRating) & (i["metacritic"] <= endRating)):
-                    games_list.append([i["name"], i["metacritic"], i["ratings_count"], i["id"]])
-
-            # If selectTableInfo multiselect doesn't include any options
+                    games_list.append(itemToAppend)
             else:
-                games_list.append([i["name"], i["id"]])
+                games_list.append(itemToAppend)
 
         # empty out the currGameGenres string, to be filled out by the new game's genre data when the loop reiterates
         currGameGenres = ""
 
     if games_list:
-        # If the data filled into games_list includes Genre, Release Date, and Ratings
-        if ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Released', 'Rating', 'Number of Ratings', 'Unique ID'))
-
-        # If the data filled into games_list includes Genre and Release Date
-        elif ('Genre' in selectTableInfo) & ('Release Date' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Released', 'Unique ID'))
-
-        # If the data filled into games_list includes Genre and Ratings
-        elif ('Genre' in selectTableInfo) & ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Rating', 'Number of Ratings', 'Unique ID'))
-
-        # If the data filled into games_list includes Release Date and Ratings
-        elif ('Release Date' in selectTableInfo) & ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Release Date', 'Rating', 'Number of Ratings', 'Unique ID'))
-
-        # If the data filled into games_list includes Genre
-        elif ('Genre' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Genre', 'Unique ID'))
-
-        # If the data filled into games_list includes Release Date
-        elif ('Release Date' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Released', 'Unique ID'))
-
-        # If the data filled into games_list includes Ratings
-        elif ('Rating' in selectTableInfo):
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Rating', 'Number of Ratings', 'Unique ID'))
-
-        # If the data filled into games_list does not include Genre, Release Date, or Ratings
-        else:
-            games_df = pd.DataFrame(
-                games_list,
-                columns=('Game', 'Unique ID'))
-
+        games_df = pd.DataFrame(
+            games_list,
+            columns=columnItems
+        )
         st.dataframe(games_df)
-
     else:
         st.error("No games matched your request")
 
@@ -259,17 +200,85 @@ if add_selectbox == "Homepage":
                 print("")
 
     if (games_list):
-        select_game_options = []
+        select_game_options = ["..."]
         for i in range(len(games_df.index)):
             select_game_options.append(str(i) + " - " + str(games_list[i][0]))
 
         selected_game = st.selectbox('Select a game to learn more about:', select_game_options)
+        selected_game_id = ""
+        
+        if (selected_game != "..."):
+            selected_game_id = games_list[int(selected_game[0])][1]
+
+            selected_game_url = "https://api.rawg.io/api/games/" + str(selected_game_id) + "?key=" + keys.RAWG_API_KEY
+
+            # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+            selected_game_dict = requests.get(selected_game_url).json()
+
+            game_desc = selected_game_dict["description"].replace('<p>', '').replace('</p>', '').replace('<br />', '').replace('<br/>', '')
+            st.markdown(game_desc)
+        else:
+            selected_game_id = ""
 
 # ------------- RATINGS PAGE -------------
 elif add_selectbox == "Ratings":
     # Add the chart with the ratings here
     title_col.title("Ratings :bar_chart:")
-    st.write("To be constructed")
+    
+    # Search name for game
+    game_to_search_for = st.text_input('Enter the name of the game you would like to search for:')
+    currPage = 1
+
+    if game_to_search_for:
+        # Used to replace spaces in a search with +'s, so that the URL actually works
+        def fixForURL(string):
+            string = string.replace(" ", "+")
+            return string
+
+
+        # The URL used for searching by game name
+        # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
+        games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+            game_to_search_for)
+        print("The URL of the API request:" + games_url)
+
+        # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+        games_dict = requests.get(games_url).json()
+        game_options = games_dict["results"]
+
+        select_game_options = []
+        for i in range(len(game_options)):
+            select_game_options.append(str(game_options[i]["name"]))
+
+        selected_game = st.selectbox('Select game:', select_game_options)
+
+        if selected_game:
+            game_to_search_for = selected_game
+            games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+                game_to_search_for)
+            print("The URL of the API request:" + games_url)
+
+            # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+            games_dict = requests.get(games_url).json()
+
+        ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+
+        for i in games_dict["results"][0]["ratings"]:
+            rating_score = i["id"]
+            rating_count = i["count"]
+            ratings_dict[rating_score].append(rating_count)
+
+        ratings_list = []
+        for j in range(6):
+            if (ratings_dict[j].__len__() == 0):
+                ratings_dict[j].append(0)
+            ratings_list.append(ratings_dict[j])
+
+        st.write("Ratings Distribution for {0}".format(game_to_search_for))
+        chart_data = pd.DataFrame(ratings_list)
+        st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+
+    #TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
 
 
 # ------------- LOCATIONS PAGE -------------
@@ -278,73 +287,50 @@ elif add_selectbox == "Locations":
     st.write("To be constructed")
 
     # Add the map here
-    '''loc_button = Button(label = "Get Location")
-    loc_button.js_on_event("button_click", CustomJS(code = """
-        navigator.geolocation.getCurrentPosition(
-            (loc) => {
-                document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
-                }
-            }
-        )
-        """))
-    result = streamlit_bokeh_events(
-        loc_button,
-        events = "GET_LOCATION",
-        key = "get_location",
-        refresh_on_update = False,
-        override_height = 75,
-        debounce_time = 0
-    )'''
+    # loc_button = Button(label = "Get Location")
+    # loc_button.js_on_event("button_click", CustomJS(code = """
+    #     navigator.geolocation.getCurrentPosition(
+    #         (loc) => {
+    #             document.dispatchEvent(new CustomEvent("GET_LOCATION", {detail: {lat: loc.coords.latitude, lon: loc.coords.longitude}}))
+    #             }
+    #         }
+    #     )
+    #     """))
+    # result = streamlit_bokeh_events(
+    #     loc_button,
+    #     events = "GET_LOCATION",
+    #     key = "get_location",
+    #     refresh_on_update = False,
+    #     override_height = 75,
+    #     debounce_time = 0
+    # )
+
+    searchByZIP = st.checkbox("Search by specific ZIP Code instead of your location?")
+
 
     bestBuyLocationsList = []
 
     zipCode = ""
 
-    while (True):
-        zipCode = st.text_input("Please input your ZIP Code to display Best Buys near you: ")
-        if zipCode.isdigit:
-            break
+    if(searchByZIP):
+        while(True):
+            zipCode = st.text_input("Please input your ZIP Code to display Best Buys near you: ")
+            if zipCode.isdigit:
+                break
 
-    if zipCode != "":
-        bestBuyLocationURL = "https://api.bestbuy.com/v1/stores((area(" + zipCode + ",10)))?apiKey=" + keys.BESTBUY_API_KEY + "&show=lng,lat,name&format=json"
-        bestBuyLocations = requests.get(bestBuyLocationURL).json()
-        bestBuyLocations
-        for i in bestBuyLocations["stores"]:
-            bestBuyLocationsList.append([i["lat"], i["lng"]])
-        bestBuys = pd.DataFrame(np.array(bestBuyLocationsList), columns=['lat', 'lon'])
-        bestBuys
-        midpoint = (np.average(bestBuys['lat']), np.average(bestBuys['lon']))
-        # st.pydeck_chart(pdk.Deck(
-        #     map_style='mapbox://styles/mapbox/light-v9',
-        #     initial_view_state=pdk.ViewState(
-        #         latitude=midpoint[0],
-        #         longitude=midpoint[1],
-        #         zoom=11,
-        #         pitch=0,
-        #     ),
-        #     layers=[
-        #         # pdk.Layer(
-        #         #     'HexagonLayer',
-        #         #     data=bestBuys,
-        #         #     get_position='[lon, lat]',
-        #         #     radius=200,
-        #         #     elevation_scale=4,
-        #         #     elevation_range=[0, 1000],
-        #         #     pickable=True,
-        #         #     extruded=True,
-        #         # ),
-        #         pdk.Layer(
-        #             'ScatterplotLayer',
-        #             data=bestBuys,
-        #             get_position='[lat, lon]',
-        #             get_color='[255, 0, 156, 1]',
-        #             get_radius=100,
-        #         ),
-        #     ],
-        # ))
-        st.map(bestBuys)
+        if zipCode != "":
+            bestBuyLocationURL = "https://api.bestbuy.com/v1/stores((area(" + zipCode + ",10)))?apiKey=" + keys.BESTBUY_API_KEY + "&show=lng,lat,name&format=json"
+            bestBuyLocations = requests.get(bestBuyLocationURL).json()
+            #bestBuyLocations
+            for i in bestBuyLocations["stores"]:
+                bestBuyLocationsList.append([i["lat"], i["lng"]])
+            bestBuys = pd.DataFrame(np.array(bestBuyLocationsList), columns = ['lat', 'lon'])
+            midpoint = (np.average(bestBuys['lat']), np.average(bestBuys['lon']))
 
-    # location = pd.DataFrame(result, columns = ("lat", "lon"))
+            st.map(bestBuys)
+    else:
+        showNearestOnly = st.checkbox("Only Show Nearest Store")
+
 
 # ------------- FEEDBACK PAGE -------------
 elif add_selectbox == "Feedback":
