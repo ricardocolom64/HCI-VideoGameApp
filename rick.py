@@ -263,18 +263,61 @@ if add_selectbox == "Homepage":
             select_game_options.append(str(i) + " - " + str(games_list[i][0]))
 
         selected_game = st.selectbox('Select a game to learn more about:', select_game_options)
+        selected_game_index = ""
         selected_game_id = ""
 
         if (selected_game != "..."):
-            selected_game_id = games_list[int(selected_game[0])][1]
+            # Finds the correct index for the selected game in the list
+            for j in range(len(selected_game)):
+                if selected_game[j] != ' ':
+                    selected_game_index += selected_game[j]
+                else:
+                    break
 
+            # Finds the unique ID for the selected game
+            selected_game_id = games_list[int(selected_game_index)][1]
+
+            # Fetches info about a certain game from the API
             selected_game_url = "https://api.rawg.io/api/games/" + str(selected_game_id) + "?key=" + keys.RAWG_API_KEY
+            print(selected_game_id)
 
-            # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
             selected_game_dict = requests.get(selected_game_url).json()
 
-            game_desc = selected_game_dict["description"].replace('<p>', '').replace('</p>', '').replace('<br />', '').replace('<br/>', '')
-            st.markdown(game_desc)
+            img_col, desc_col = st.columns([0.8, 1])
+
+            selected_game_platforms = ""
+            selected_game_genres = ""
+            selected_game_developers = ""
+
+            # Populates information about platforms, genres, and developers
+            for j in range(len(selected_game_dict["platforms"])):
+                if (len(selected_game_platforms) == 0):
+                    selected_game_platforms += selected_game_dict["platforms"][j]["platform"]["name"]
+                else:
+                    selected_game_platforms += ", " + selected_game_dict["platforms"][j]["platform"]["name"]
+
+            for j in range(len(selected_game_dict["genres"])):
+                if (len(selected_game_genres) == 0):
+                    selected_game_genres += selected_game_dict["genres"][j]["name"]
+                else:
+                    selected_game_genres += ", " + selected_game_dict["genres"][j]["name"]
+
+            for j in range(len(selected_game_dict["developers"])):
+                if (len(selected_game_developers) == 0):
+                    selected_game_developers += selected_game_dict["developers"][j]["name"]
+                else:
+                    selected_game_developers += ", " + selected_game_dict["developers"][j]["name"]
+
+            with img_col:
+                st.image(selected_game_dict["background_image"], width=620)
+            with desc_col:
+                st.header(selected_game_dict["name"])
+                st.text("Rating: " + str(selected_game_dict["rating"]))
+                st.markdown(selected_game_dict["description_raw"])
+                st.text("Released: " + selected_game_dict["released"])
+                st.text("Genres: " + str(selected_game_genres))
+                st.text("Developers: " + str(selected_game_developers))
+                st.text("Platforms: " + str(selected_game_platforms))
         else:
             selected_game_id = ""
 
