@@ -1,3 +1,4 @@
+import alejandro
 import keys
 import pandas as pd
 import numpy as np
@@ -16,7 +17,7 @@ blank, title_col, blank = st.columns([2,3.5,2])
 # Side Bar
 add_selectbox = st.sidebar.selectbox(
    "Select:",
-   ["Homepage", "Ratings", "Locations", "Feedback","Contact Info"]
+   ["Homepage", "Ratings", "Compare", "Locations", "Feedback","Contact Info"]
 )
 
 
@@ -65,6 +66,19 @@ elif add_selectbox == "Ratings":
    title_col.title("Ratings :bar_chart:")
    st.write("To be constructed")
 
+elif add_selectbox == "Compare":
+    title_col.title("Compare Games")
+    selected_game = st.text_input("Look First Game to Compare :eyes: ")
+    selected_game2 = st.text_input("Look for Second Game to Compare :eyes: ")
+
+    alejandro.compare_game(selected_game, selected_game2)
+    game_col1, game_col2 = st.columns
+
+    with game_col1:
+        st.header(str(selected_game))
+
+    with game_col2:
+        st.header(str(selected_game2))
 
 elif add_selectbox == "Locations":
    title_col.title("Locations :pushpin:")

@@ -53,8 +53,7 @@ def compare_game(game1, game2):
     game2_ratings = ratings_data(game2)
 
     df = pd.DataFrame(list(zip(game1_ratings, game2_ratings)),
-                      columns = [str(game1).capitalize(), str(game2).capitalize()])
+                      columns=[str(game1).capitalize(), str(game2).capitalize()])
 
     st.line_chart(df)
 
-compare_game("Portal 2", "Reciever 2")
