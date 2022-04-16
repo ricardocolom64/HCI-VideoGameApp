@@ -353,7 +353,6 @@ elif add_selectbox == "Compare":
     game1 = st.text_input("Look for game one.")
     game2 = st.text_input("Look for game two.")
 
-    
     # Replaces spaces for - on purpose, that's how slug is defined in the api.
     def fix_url_for_slug(string):
         new_string = string.replace(" ", "-").lower()
@@ -361,6 +360,7 @@ elif add_selectbox == "Compare":
 
     # Function to get ratings for a specified game (modified version of Ratings page code)
     def ratings_data(game_to_search_for, gameNum):
+        game_return = []
         game_to_search_for = fix_url_for_slug(game_to_search_for)
         games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fix_url_for_slug(
             game_to_search_for)
@@ -384,35 +384,46 @@ elif add_selectbox == "Compare":
             if reviewers > 0:
                 for i in range(len(ratings_list)):
                     ratings_list[i] = ratings_list[i] / reviewers
+                game_return = [True, found_game["name"], ratings_list]
             else:
-                st.warning("No reviews found for " + found_game["name"])
-            game_return = [found_game["name"], ratings_list]
-            # [Name of the game, List of ratings] more things can be added
+                game_return = [True, found_game["name"], 0]
+            # [success (T/F), Name of the game, List of ratings]
             return game_return
         else:
-            st.error("Game " + str(gameNum) + " not found. Please try spelling it a different way, or try a different game.")
-
+            game_return = [False]
+            return game_return
     # Function to compare 2 given games
     def compare_game(game1, game2):
 
         game1_ratings = ratings_data(game1, 1)
         game2_ratings = ratings_data(game2, 2)
+        if game1_ratings[0] and game2_ratings[0]:
+            array_sum1 = sum(game1_ratings[2])
+            array_sum2 = sum(game2_ratings[2])
 
-        if((game1_ratings[1] == [0, 0, 0, 0, 0, 0]) & (game2_ratings[1] == [0, 0, 0, 0, 0, 0])):
-            print("test")
-        elif isinstance(game1_ratings, list) and isinstance(game2_ratings, list) \
-            and game1 and game2:
-            df = pd.DataFrame(list(zip(game1_ratings[1], game2_ratings[1])),
-                            columns=[game1_ratings[0], game2_ratings[0]])
+            df = pd.DataFrame(list(zip(game1_ratings[2], game2_ratings[2])),
+                            columns=[game1_ratings[1], game2_ratings[1]])
             st.line_chart(df)
             game1_col, game2_col = st.columns(2)
             with game1_col:
-                st.subheader("Information about " + game1_ratings[0])
+                st.subheader("Information about " + game1_ratings[1])
+
             with game2_col:
-                st.subheader("Information about " + game2_ratings[0])
+                st.subheader("Information about " + game2_ratings[1])
+        else:
+            if not game1_ratings[0] and not game2_ratings[0]:
+                st.error("Neither game found. Please try spelling it a different way, or try a different game.")
+            elif not game1_ratings[0]:
+                st.error("Game " + str(game1) + " not found. Please try spelling it a different way, or try a different game.")
+            elif not game2_ratings[0]:
+                st.error("Game " + str(game2) + " not found. Please try spelling it a different way, or try a different game.")
 
     # When the user provides both games, try to compare them
-    compare_game(str(game1), str(game2))
+    if len(game1.strip()) > 0 and len(game2.strip()) > 0:
+        compare_game(str(game1), str(game2))
+    else:
+        st.info("Please input two games.")
+
 
 # ------------- LOCATIONS PAGE -------------
 elif add_selectbox == "Locations":
