@@ -1,12 +1,12 @@
 import math
 import keys
 import requests
-
-
 import pandas as pd
 import numpy as np
 import streamlit as st
+import geocoder
 import plotly.figure_factory as ff
+import plotly.express as px
 
 # This app is using Best Buy's API and RAWG Video Games Database API
 
@@ -272,72 +272,95 @@ elif add_selectbox == "Ratings":
     title_col.title("Ratings :bar_chart:")
     
     # Search name for game
-    game_to_search_for = st.text_input('Enter the name of the game you would like to search for:')
+    game_to_search = st.text_input('Enter the name of the game you would like to find ratings for:')
     currPage = 1
 
-    if game_to_search_for:
-        # Used to replace spaces in a search with +'s, so that the URL actually works
-        def fixForURL(string):
-            string = string.replace(" ", "+")
-            return string
+    if game_to_search:
+        # If text input box contains text (not just spaces)
+        if (len(game_to_search.strip())):
+            # Used to replace spaces in a search with +'s, so that the URL actually works
+            def fixForURL(string):
+                string = string.replace(" ", "+")
+                return string
             # The URL used for searching by game name
-        # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
-        games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
-            game_to_search_for)
-        print("The URL of the API request:" + games_url)
-
-        # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
-        games_dict = requests.get(games_url).json()
-        game_options = games_dict["results"]
-
-        select_game_options = []
-        for i in range(len(game_options)):
-            select_game_options.append(str(game_options[i]["name"]))
-
-        selected_game = st.selectbox('Select game:', select_game_options)
-
-        if selected_game:
-            game_to_search_for = selected_game
             games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
-                game_to_search_for)
+                game_to_search)
             print("The URL of the API request:" + games_url)
 
             # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
             games_dict = requests.get(games_url).json()
+            game_options = games_dict["results"]
 
-        ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+            # If there are no games with the name provided by the user, print an error message
+            if (len(game_options) <= 0):
+                st.error("No games found by the name " + game_to_search)
 
-        for i in games_dict["results"][0]["ratings"]:
-            rating_score = i["id"]
-            rating_count = i["count"]
-            ratings_dict[rating_score].append(rating_count)
+            # Else display the select box for the user to choose the exact game name from a dropdown menu
+            else:
+                select_game_options = [""]
+                for i in range(len(game_options)):
+                    select_game_options.append(str(game_options[i]["name"]))
 
-        ratings_list = []
-        for j in range(6):
-            if (ratings_dict[j].__len__() == 0):
-                ratings_dict[j].append(0)
-            ratings_list.append(ratings_dict[j])
+                selected_game = st.selectbox('Select game:', select_game_options)
+                
+                # If user has chosen a game from the dropdown menu
+                if selected_game:
+                    game_to_search = selected_game
+                    games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+                        game_to_search)
+                    print("The URL of the API request:" + games_url)
 
-        st.write("Ratings Distribution for {0}".format(game_to_search_for))
-        chart_data = pd.DataFrame(ratings_list)
-        st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+                    # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+                    games_dict = requests.get(games_url).json()
 
-# TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
+                    ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
+                    # If the game has ratings
+                    if (games_dict["results"][0]["ratings"]):
+
+                        # Fetch the rating score and count of ratings with that score and store this info in a dictionary
+                        for i in games_dict["results"][0]["ratings"]:
+                            rating_score = i["id"]
+                            rating_count = i["count"]
+                            ratings_dict[rating_score].append(rating_count)
+
+                        ratings_list = []
+                            # Store the info from the dictionary in a list
+                        for j in range(6):
+                            if (ratings_dict[j].__len__() == 0):
+                                ratings_dict[j].append(0)
+                            ratings_list.append(ratings_dict[j])
+
+                        # Create the bar chart
+                        chart_data = pd.DataFrame(ratings_list,columns=[selected_game])
+                        fig = px.bar(chart_data,
+                                        labels={'index':'Star(s)','value':'User(s)'},
+                                        title="Ratings Distribution for {0}".format(game_to_search))
+                        st.plotly_chart(fig)
+
+                    # Else if the game has no ratings, notify the user
+                    else:
+                        st.error("No ratings found for " + selected_game)
+
+        # If the user just typed spaces into the text input box, ask the user to enter the name of a game
+        else:
+            st.error("The search field is empty. Please enter the name of a game.")
 
 # ------------- COMPARE -------------
 elif add_selectbox == "Compare":
-    st.title("Compare Two Games")
+    title_col.title("Compare Two Games :chart_with_upwards_trend:")
+
     game1 = st.text_input("Look for game one.")
     game2 = st.text_input("Look for game two.")
 
-    #Replaces spaces for - on purpose, that's how slug is defined in the api.
+    
+    # Replaces spaces for - on purpose, that's how slug is defined in the api.
     def fix_url_for_slug(string):
         new_string = string.replace(" ", "-").lower()
         return new_string
 
-    # copied and modified Jada's code into a function
-    def ratings_data(game_to_search_for):
+    # Function to get ratings for a specified game (modified version of Ratings page code)
+    def ratings_data(game_to_search_for, gameNum):
         game_to_search_for = fix_url_for_slug(game_to_search_for)
         games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fix_url_for_slug(
             game_to_search_for)
@@ -358,28 +381,38 @@ elif add_selectbox == "Compare":
                 rating_count = i["count"]
                 reviewers += rating_count
                 ratings_list[rating_score] = rating_count
-
-            for i in range(len(ratings_list)):
-                ratings_list[i] = ratings_list[i]/reviewers
+            if reviewers > 0:
+                for i in range(len(ratings_list)):
+                    ratings_list[i] = ratings_list[i] / reviewers
+            else:
+                st.warning("No reviews found for " + found_game["name"])
             game_return = [found_game["name"], ratings_list]
+            # [Name of the game, List of ratings] more things can be added
             return game_return
         else:
-            st.error("Game not found. Please try spelling it a different way, or try a different game.")
+            st.error("Game " + str(gameNum) + " not found. Please try spelling it a different way, or try a different game.")
 
+    # Function to compare 2 given games
     def compare_game(game1, game2):
 
-        game1_ratings = ratings_data(game1)
-        game2_ratings = ratings_data(game2)
-        st.write(game1_ratings)
-        st.write(game2_ratings)
-        if isinstance(game1_ratings, list) and isinstance(game2_ratings, list):
+        game1_ratings = ratings_data(game1, 1)
+        game2_ratings = ratings_data(game2, 2)
+
+        if((game1_ratings[1] == [0, 0, 0, 0, 0, 0]) & (game2_ratings[1] == [0, 0, 0, 0, 0, 0])):
+            print("test")
+        elif isinstance(game1_ratings, list) and isinstance(game2_ratings, list) \
+            and game1 and game2:
             df = pd.DataFrame(list(zip(game1_ratings[1], game2_ratings[1])),
-                              columns=[game1_ratings[0], game2_ratings[0]])
-
+                            columns=[game1_ratings[0], game2_ratings[0]])
             st.line_chart(df)
+            game1_col, game2_col = st.columns(2)
+            with game1_col:
+                st.subheader("Information about " + game1_ratings[0])
+            with game2_col:
+                st.subheader("Information about " + game2_ratings[0])
 
-    if game1 and game2:
-        compare_game(str(game1), str(game2))
+    # When the user provides both games, try to compare them
+    compare_game(str(game1), str(game2))
 
 # ------------- LOCATIONS PAGE -------------
 elif add_selectbox == "Locations":
@@ -393,7 +426,7 @@ elif add_selectbox == "Locations":
     # Search by user-provided ZIP Code
     if(searchByZIP):
         while(True):
-            zipCode = st.text_input("Please input your ZIP Code to display Best Buys near you: ")
+            zipCode = st.text_input("Please input the ZIP Code in which you would like to display nearby Best Buys: ")
             if zipCode.isdigit:
                 break
 
@@ -401,9 +434,6 @@ elif add_selectbox == "Locations":
             # The URL used for searching for best buy locations near the provided ZIP Code
             bestBuyLocationURL = "https://api.bestbuy.com/v1/stores((area(" + zipCode + ",10)))?apiKey=" + keys.BESTBUY_API_KEY + "&show=lng,lat,name&format=json"
             bestBuyLocations = requests.get(bestBuyLocationURL).json()
-            
-            st.info("Currently displaying Best Buy Locations within a 10 mile square of provided ZIP Code")
-
 
             if(not 'error' in bestBuyLocations):
                 # Best Buy Locations within 10 mile square of provided ZIP Code
@@ -411,6 +441,8 @@ elif add_selectbox == "Locations":
                     bestBuyLocationsList.append([i["lat"], i["lng"]])
                 
                 if(bestBuyLocationsList):
+                    st.info("Currently displaying Best Buy locations within a 10 mile square of provided ZIP Code")
+
                     bestBuys = pd.DataFrame(np.array(bestBuyLocationsList), columns = ['lat', 'lon'])
                     midpoint = (np.average(bestBuys['lat']), np.average(bestBuys['lon']))
 
@@ -438,13 +470,13 @@ elif add_selectbox == "Locations":
                 bestBuyLocationsList.append([i["lat"], i["lng"]])
                 break
             
-            st.info("Currently displaying Nearest Best Buy Location to you")
+            st.info("Currently displaying nearest Best Buy location to you")
         else:
             # Best Buy Locations within 10 mile square of User's location
             for i in bestBuyLocations["stores"]:
                 bestBuyLocationsList.append([i["lat"], i["lng"]])
             
-            st.info("Currently displaying Best Buy Locations within a 10 mile square of you")
+            st.info("Currently displaying Best Buy locations within a 10 mile square of you")
 
         if(bestBuyLocationsList):
             bestBuys = pd.DataFrame(np.array(bestBuyLocationsList), columns = ['lat', 'lon'])
