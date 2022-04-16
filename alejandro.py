@@ -8,7 +8,7 @@ def fixForURL(string):
     string = string.replace(" ", "")
     return string
 
-#copied jada's code into a function for easier retrieval for the histogram
+#copied and modified Jada's code into a function
 def ratings_data(game_to_search_for):
     # Used to replace spaces in a search with +'s, so that the URL actually works
 
@@ -20,7 +20,7 @@ def ratings_data(game_to_search_for):
     games_dict = requests.get(games_url).json()
     game_options = games_dict["results"]
 
-    select_game_options = [""]
+    select_game_options = []
     for i in range(len(game_options)):
         select_game_options.append(str(i) + " - " + str(game_options[i]["name"]))
 

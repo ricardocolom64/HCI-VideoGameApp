@@ -1,10 +1,12 @@
 import math
 import keys
+import requests
+
+
 import pandas as pd
 import numpy as np
-import requests
 import streamlit as st
-import geocoder
+import plotly.figure_factory as ff
 
 # This app is using Best Buy's API and RAWG Video Games Database API
 
@@ -16,7 +18,7 @@ blank, title_col, blank = st.columns([2, 3.5, 2])
 # Side Bar
 add_selectbox = st.sidebar.selectbox(
     "Select:",
-    ["Homepage", "Ratings", "Locations", "Feedback", "Contact Info"]
+    ["Homepage", "Ratings", "Compare", "Locations", "Feedback", "Contact Info"]
 )
 
 # ------------- HOMEPAGE -------------
@@ -278,9 +280,7 @@ elif add_selectbox == "Ratings":
         def fixForURL(string):
             string = string.replace(" ", "+")
             return string
-
-
-        # The URL used for searching by game name
+            # The URL used for searching by game name
         # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
         games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
             game_to_search_for)
@@ -322,7 +322,64 @@ elif add_selectbox == "Ratings":
         chart_data = pd.DataFrame(ratings_list)
         st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
 
-    #TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
+# TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
+
+
+# ------------- COMPARE -------------
+elif add_selectbox == "Compare":
+    st.title("Compare Two Games")
+    game1 = st.text_input("Look for game one.")
+    game2 = st.text_input("Look for game two.")
+
+    #Replaces spaces for - on purpose, that's how slug is defined in the api.
+    def fix_url_for_slug(string):
+        new_string = string.replace(" ", "-").lower()
+        return new_string
+
+    # copied and modified Jada's code into a function
+    def ratings_data(game_to_search_for):
+        game_to_search_for = fix_url_for_slug(game_to_search_for)
+        games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fix_url_for_slug(
+            game_to_search_for)
+        print("The URL of the API request:" + games_url)
+
+        # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+        games_dict = requests.get(games_url).json()
+        found_game = {}
+        for i in games_dict["results"]:
+            if i["slug"] in game_to_search_for or game_to_search_for in i["slug"]:
+                found_game = i
+                break
+        if found_game:
+            ratings_list = [0, 0, 0, 0, 0, 0]
+            reviewers = 0
+            for i in found_game["ratings"]:
+                rating_score = i["id"]
+                rating_count = i["count"]
+                reviewers += rating_count
+                ratings_list[rating_score] = rating_count
+
+            for i in range(len(ratings_list)):
+                ratings_list[i] = ratings_list[i]/reviewers
+            game_return = [found_game["name"], ratings_list]
+            return game_return
+        else:
+            st.error("Game not found. Please try spelling it a different way, or try a different game.")
+
+    def compare_game(game1, game2):
+
+        game1_ratings = ratings_data(game1)
+        game2_ratings = ratings_data(game2)
+        st.write(game1_ratings)
+        st.write(game2_ratings)
+        if isinstance(game1_ratings, list) and isinstance(game2_ratings, list):
+            df = pd.DataFrame(list(zip(game1_ratings[1], game2_ratings[1])),
+                              columns=[game1_ratings[0], game2_ratings[0]])
+
+            st.line_chart(df)
+
+    if game1 and game2:
+        compare_game(str(game1), str(game2))
 
 # ------------- LOCATIONS PAGE -------------
 elif add_selectbox == "Locations":
