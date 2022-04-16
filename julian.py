@@ -1,7 +1,7 @@
 import math
 import keys
 import requests
-
+import geocoder
 
 import pandas as pd
 import numpy as np
@@ -331,9 +331,9 @@ elif add_selectbox == "Compare":
     game1 = st.text_input("Look for game one.")
     game2 = st.text_input("Look for game two.")
 
-    #Replaces spaces for - on purpose, that's how slug is defined in the api.
+    #Replace spaces for - on purpose, that's how slug is defined in the api.
     def fix_url_for_slug(string):
-        new_string = string.replace(" ", "-").lower()
+        new_string = string.replace(" ", "-").replace("'","").lower()
         return new_string
 
     # copied and modified Jada's code into a function
@@ -358,28 +358,38 @@ elif add_selectbox == "Compare":
                 rating_count = i["count"]
                 reviewers += rating_count
                 ratings_list[rating_score] = rating_count
-
-            for i in range(len(ratings_list)):
-                ratings_list[i] = ratings_list[i]/reviewers
+            if reviewers > 0:
+                for i in range(len(ratings_list)):
+                    ratings_list[i] = ratings_list[i]/reviewers
+            else:
+                 st.warning("No reviews found for " + found_game["name"])
             game_return = [found_game["name"], ratings_list]
+            #[Name of the game, List of ratings] more things can be added
             return game_return
         else:
             st.error("Game not found. Please try spelling it a different way, or try a different game.")
+
+    def retail_data(game):
+        best_buy_request = "https://api.bestbuy.com/v1/products(search={0})?format=json&show=sku,name,salePrice&apiKey={1}".format(str(game), keys.BESTBUY_API_KEY)
+
+        retail_game_dict = requests.get(best_buy_request).json()
+        return retail_game_dict
 
     def compare_game(game1, game2):
 
         game1_ratings = ratings_data(game1)
         game2_ratings = ratings_data(game2)
-        st.write(game1_ratings)
-        st.write(game2_ratings)
-        if isinstance(game1_ratings, list) and isinstance(game2_ratings, list):
+        if isinstance(game1_ratings, list) and isinstance(game2_ratings, list) \
+                and game1 and game2:
             df = pd.DataFrame(list(zip(game1_ratings[1], game2_ratings[1])),
                               columns=[game1_ratings[0], game2_ratings[0]])
-
             st.line_chart(df)
-
-    if game1 and game2:
-        compare_game(str(game1), str(game2))
+            game1_col, game2_col = st.columns(2)
+            with game1_col:
+                st.subheader("Information about " + game1_ratings[0])
+            with game2_col:
+                st.subheader("Information about " + game2_ratings[0])
+    compare_game(str(game1), str(game2))
 
 # ------------- LOCATIONS PAGE -------------
 elif add_selectbox == "Locations":
