@@ -386,7 +386,7 @@ elif add_selectbox == "Compare":
                     ratings_list[i] = ratings_list[i] / reviewers
                 game_return = [True, found_game["name"], ratings_list, found_game["background_image"], found_game["rating"], found_game["genres"]]
             else:
-                game_return = [True, found_game["name"], 0, found_game["background_image"], found_game["rating"], found_game["genres"]]
+                game_return = [True, found_game["name"],[0], found_game["background_image"], found_game["rating"], found_game["genres"]]
             # [success (T/F), Name of the game, List of ratings]
             return game_return
         else:
@@ -407,10 +407,15 @@ elif add_selectbox == "Compare":
         if game1_ratings[0] and game2_ratings[0]:
             array_sum1 = sum(game1_ratings[2])
             array_sum2 = sum(game2_ratings[2])
+            if array_sum1 > 0 and array_sum2 > 0:
+                df = pd.DataFrame(list(zip(game1_ratings[2], game2_ratings[2])),
+                                columns=[game1_ratings[1], game2_ratings[1]])
+                st.line_chart(df)
+            elif array_sum1 == 0:
+                st.info("No ratings available for " + game1_ratings[1])
+            elif array_sum2 == 0:
+                st.info("No ratings available for " + game2_ratings[1])
 
-            df = pd.DataFrame(list(zip(game1_ratings[2], game2_ratings[2])),
-                            columns=[game1_ratings[1], game2_ratings[1]])
-            st.line_chart(df)
             game1_col, game2_col = st.columns(2)
             with game1_col:
                 st.subheader("Information about " + game1_ratings[1])
