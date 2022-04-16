@@ -26,7 +26,7 @@ if add_selectbox == "Homepage":
 
 
     # Search name for game
-    game_to_search_for = st.text_input('Enter the name of the game you would like to search for:')
+    game_to_search = st.text_input('Enter the name of the game you would like to search for:')
     currPage = 1
 
 
@@ -37,9 +37,8 @@ if add_selectbox == "Homepage":
 
 
     # The URL used for searching by game name
-    # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
     games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
-        game_to_search_for) + "&page=" + str(currPage)
+        game_to_search) + "&page=" + str(currPage)
     print("The URL of the API request:" + games_url)
 
     # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
@@ -195,66 +194,81 @@ elif add_selectbox == "Ratings":
     # Add the chart with the ratings here
     title_col.title("Ratings :bar_chart:")
 
-    #game_to_search_for = "Portal"
-
     # Search name for game
-    game_to_search_for = st.text_input('Enter the name of the game you would like to search for:')
+    game_to_search = st.text_input('Enter the name of the game you would like to search for:')
     currPage = 1
 
-    if game_to_search_for:
-        # Used to replace spaces in a search with +'s, so that the URL actually works
-        def fixForURL(string):
-            string = string.replace(" ", "+")
-            return string
+    # If user has typed something in the text input box
+    if game_to_search:
 
+        # If text input box contains text (not just spaces)
+        if (len(game_to_search.strip())):
 
-        # The URL used for searching by game name
-        # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
-        games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
-            game_to_search_for)
-        print("The URL of the API request:" + games_url)
+            # Used to replace spaces in a search with +'s, so that the URL actually works
+            def fixForURL(string):
+                string = string.replace(" ", "+")
+                return string
 
-        # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
-        games_dict = requests.get(games_url).json()
-        game_options = games_dict["results"]
-
-        select_game_options = [""]
-        for i in range(len(game_options)):
-            select_game_options.append(str(i) + " - " + str(game_options[i]["name"]))
-
-        selected_game = st.selectbox('Select game:', select_game_options)
-
-        if selected_game:
-            game_to_search_for = selected_game
+            # The URL used for searching by game name
             games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
-                game_to_search_for)
-            print("The URL of the API request:" + games_url)
+                game_to_search)
 
             # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
             games_dict = requests.get(games_url).json()
+            game_options = games_dict["results"]
 
-            ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+            # If there are no games with the name provided by the user, print an error message
+            if (len(game_options) <= 0):
+                st.error("No games found by the name " + game_to_search)
 
-            for i in games_dict["results"][0]["ratings"]:
-                rating_score = i["id"]
-                rating_count = i["count"]
-                ratings_dict[rating_score].append(rating_count)
+            # Else display the select box for the user to choose the exact game name from a dropdown menu
+            else:
+                select_game_options = [""]
+                for i in range(len(game_options)):
+                    select_game_options.append(str(game_options[i]["name"]))
 
-            ratings_list = []
-            for j in range(6):
-                if (ratings_dict[j].__len__() == 0):
-                    ratings_dict[j].append(0)
-                ratings_list.append(ratings_dict[j])
+                selected_game = st.selectbox('Select game:', select_game_options)
 
-            st.write("Ratings Distribution for {0}".format(game_to_search_for))
-            chart_data = pd.DataFrame(ratings_list)
-            st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+                # If user has chosen a game from the dropdown menu
+                if selected_game:
+                    game_to_search = selected_game
+                    games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+                        game_to_search)
+                    print("The URL of the API request:" + games_url)
 
+                    # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+                    games_dict = requests.get(games_url).json()
 
+                    ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
 
+                    # If the game has ratings
+                    if (games_dict["results"][0]["ratings"]):
 
-    #TODO: Format bar chart so it displays all the data in the frame that is visible to the user. If it is too zoomed in by default, then the user won't be able to see all the data
+                        # Fetch the rating score and count of ratings with that score and store this info in a dictionary
+                        for i in games_dict["results"][0]["ratings"]:
+                            rating_score = i["id"]
+                            rating_count = i["count"]
+                            ratings_dict[rating_score].append(rating_count)
 
+                        ratings_list = []
+                        # Store the info from the dictionary in a list
+                        for j in range(6):
+                            if (ratings_dict[j].__len__() == 0):
+                                ratings_dict[j].append(0)
+                            ratings_list.append(ratings_dict[j])
+
+                        # Create the bar chart
+                        st.write("Ratings Distribution for {0}".format(game_to_search))
+                        chart_data = pd.DataFrame(ratings_list)
+                        st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+
+                    # Else if the game has no ratings, notify the user
+                    else:
+                        st.error("No ratings found for " + selected_game)
+
+        # If the user just typed spaces into the text input box, ask the user to enter the name of a game
+        else:
+            st.info("The search field is empty. Please enter the name of a game.")
 
 # ------------- LOCATIONS PAGE -------------
 elif add_selectbox == "Locations":
