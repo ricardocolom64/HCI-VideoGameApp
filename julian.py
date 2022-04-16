@@ -359,7 +359,7 @@ elif add_selectbox == "Compare":
         return new_string
 
     # Function to get ratings for a specified game (modified version of Ratings page code)
-    def ratings_data(game_to_search_for, gameNum):
+    def ratings_data(game_to_search_for):
         game_return = []
         game_to_search_for = fix_url_for_slug(game_to_search_for)
         games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fix_url_for_slug(
@@ -384,19 +384,26 @@ elif add_selectbox == "Compare":
             if reviewers > 0:
                 for i in range(len(ratings_list)):
                     ratings_list[i] = ratings_list[i] / reviewers
-                game_return = [True, found_game["name"], ratings_list]
+                game_return = [True, found_game["name"], ratings_list, found_game["background_image"], found_game["rating"], found_game["genres"]]
             else:
-                game_return = [True, found_game["name"], 0]
+                game_return = [True, found_game["name"], 0, found_game["background_image"], found_game["rating"], found_game["genres"]]
             # [success (T/F), Name of the game, List of ratings]
             return game_return
         else:
             game_return = [False]
             return game_return
     # Function to compare 2 given games
+    def display_game(game_info):
+        st.image(str(game_info[3]))
+        st.write("Overall rating: " + str(game_info[4]))
+        genre_str = "|| "
+        for i in game_info[5]:
+            genre_str += i["name"] + " || "
+        st.write("Genres: " + genre_str)
     def compare_game(game1, game2):
 
-        game1_ratings = ratings_data(game1, 1)
-        game2_ratings = ratings_data(game2, 2)
+        game1_ratings = ratings_data(game1)
+        game2_ratings = ratings_data(game2)
         if game1_ratings[0] and game2_ratings[0]:
             array_sum1 = sum(game1_ratings[2])
             array_sum2 = sum(game2_ratings[2])
@@ -407,9 +414,10 @@ elif add_selectbox == "Compare":
             game1_col, game2_col = st.columns(2)
             with game1_col:
                 st.subheader("Information about " + game1_ratings[1])
-
+                display_game(game1_ratings)
             with game2_col:
                 st.subheader("Information about " + game2_ratings[1])
+                display_game(game2_ratings)
         else:
             if not game1_ratings[0] and not game2_ratings[0]:
                 st.error("Neither game found. Please try spelling it a different way, or try a different game.")
