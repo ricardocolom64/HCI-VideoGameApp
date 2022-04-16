@@ -5,14 +5,14 @@ import requests
 import streamlit as st
 from streamlit_folium import folium_static
 import folium
+import plotly.express as px
 
 # This app is using Best Buy's API and RAWG Video Games Database API
 
 # Title for this app
-st.set_page_config(layout="wide", page_icon=":video_game:", page_title="Video Game App")
+st.set_page_config(layout="wide", page_icon=":video_game:", page_title="Game Check")
 
 blank, title_col, blank = st.columns([2,3.5,2])
-
 
 # Side Bar
 add_selectbox = st.sidebar.selectbox(
@@ -22,11 +22,11 @@ add_selectbox = st.sidebar.selectbox(
 
 # ------------- HOMEPAGE -------------
 if add_selectbox == "Homepage":
-    title_col.title("Video Game App :video_game:")
+    title_col.title("Game Check :video_game:")
 
 
     # Search name for game
-    game_to_search_for = st.text_input('Enter the name of the game you would like to search for:')
+    game_to_search = st.text_input('Enter the name of the game you would like to search for:')
     currPage = 1
 
 
@@ -37,9 +37,8 @@ if add_selectbox == "Homepage":
 
 
     # The URL used for searching by game name
-    # TODO: The URL here should be using Best Buy's API, not RAWG. The RAWG API should be used solely for metadata like ratings, genre, etc.
     games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
-        game_to_search_for) + "&page=" + str(currPage)
+        game_to_search) + "&page=" + str(currPage)
     print("The URL of the API request:" + games_url)
 
     # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
@@ -183,13 +182,95 @@ if add_selectbox == "Homepage":
     else:
         st.error("No games found")
 
+    select_game_options = []
+    for i in range(len(games_df.index)):
+        select_game_options.append(str(i) + " - " + str(games_list[i][0]))
+
+    selected_game = st.selectbox('Select game:', select_game_options)
+
 
 # ------------- RATINGS PAGE -------------
 elif add_selectbox == "Ratings":
     # Add the chart with the ratings here
     title_col.title("Ratings :bar_chart:")
-    st.write("To be constructed")
 
+    # Search name for game
+    game_to_search = st.text_input('Enter the name of the game you would like to search for:')
+    currPage = 1
+
+    # If user has typed something in the text input box
+    if game_to_search:
+
+        # If text input box contains text (not just spaces)
+        if (len(game_to_search.strip())):
+
+            # Used to replace spaces in a search with +'s, so that the URL actually works
+            def fixForURL(string):
+                string = string.replace(" ", "+")
+                return string
+
+            # The URL used for searching by game name
+            games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+                game_to_search)
+
+            # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+            games_dict = requests.get(games_url).json()
+            game_options = games_dict["results"]
+
+            # If there are no games with the name provided by the user, print an error message
+            if (len(game_options) <= 0):
+                st.error("No games found by the name " + game_to_search)
+
+            # Else display the select box for the user to choose the exact game name from a dropdown menu
+            else:
+                select_game_options = [""]
+                for i in range(len(game_options)):
+                    select_game_options.append(str(game_options[i]["name"]))
+
+                selected_game = st.selectbox('Select game:', select_game_options)
+
+                # If user has chosen a game from the dropdown menu
+                if selected_game:
+                    game_to_search = selected_game
+                    games_url = "https://api.rawg.io/api/games?key=" + keys.RAWG_API_KEY + "&search=" + fixForURL(
+                        game_to_search)
+                    print("The URL of the API request:" + games_url)
+
+                    # Creates a dictionary (like an array but the indexes are "keys" (strings) rather than integers) using info returned from the URL request
+                    games_dict = requests.get(games_url).json()
+
+                    ratings_dict = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []}
+
+                    # If the game has ratings
+                    if (games_dict["results"][0]["ratings"]):
+
+                        # Fetch the rating score and count of ratings with that score and store this info in a dictionary
+                        for i in games_dict["results"][0]["ratings"]:
+                            rating_score = i["id"]
+                            rating_count = i["count"]
+                            ratings_dict[rating_score].append(rating_count)
+
+                        ratings_list = []
+                        # Store the info from the dictionary in a list
+                        for j in range(6):
+                            if (ratings_dict[j].__len__() == 0):
+                                ratings_dict[j].append(0)
+                            ratings_list.append(ratings_dict[j])
+
+                        # Create the bar chart
+                        chart_data = pd.DataFrame(ratings_list,columns=[selected_game])
+                        fig = px.bar(chart_data,
+                                     labels={'index':'Star(s)','value':'User(s)'},
+                                     title="Ratings Distribution for {0}".format(game_to_search))
+                        st.plotly_chart(fig)
+
+                    # Else if the game has no ratings, notify the user
+                    else:
+                        st.error("No ratings found for " + selected_game)
+
+        # If the user just typed spaces into the text input box, ask the user to enter the name of a game
+        else:
+            st.info("The search field is empty. Please enter the name of a game.")
 
 # ------------- LOCATIONS PAGE -------------
 elif add_selectbox == "Locations":

@@ -9,7 +9,7 @@ import streamlit as st
 # This app is using Best Buy's API and RAWG Video Games Database API
 
 # Title for this app
-st.set_page_config(layout="wide", page_icon=":video_game:", page_title="Video Game App")
+st.set_page_config(layout="wide", page_icon=":video_game:", page_title="Game Check")
 
 blank, title_col, blank = st.columns([2,3.5,2])
 
@@ -22,7 +22,7 @@ add_selectbox = st.sidebar.selectbox(
 
 
 if add_selectbox == "Homepage":
-   title_col.title("Video Game App :video_game:")
+   title_col.title("Game Check :video_game:")
 
 # Search name for game
    game_to_search_for = "Super Mario"

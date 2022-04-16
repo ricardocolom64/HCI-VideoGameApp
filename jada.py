@@ -259,8 +259,9 @@ elif add_selectbox == "Ratings":
 
                         # Create the bar chart
                         st.write("Ratings Distribution for {0}".format(game_to_search))
-                        chart_data = pd.DataFrame(ratings_list)
-                        st.bar_chart(data=chart_data, width=0, height=0, use_container_width=True)
+                        chart_data = pd.DataFrame(ratings_list,columns= ["selected_game"])
+                        st.bar_chart(chart_data, width =0,height=0)
+
 
                     # Else if the game has no ratings, notify the user
                     else:
